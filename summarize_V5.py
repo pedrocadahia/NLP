@@ -183,7 +183,7 @@ def rank(nodes, edges):
     return nx.pagerank(graph)
 
 
-def get_phrase(nodes, frases):
+def get_phrase(nodes, frases,texto_paginas):
     # Primero, acotamos las frases segun su aparicion en el texto
     nod = []
     for node in nodes:
@@ -208,7 +208,7 @@ def get_phrase(nodes, frases):
     frases_acotadas
     # Tercero, tenemos las paginas acotadas
     # indice de paginas
-    texto_paginas = conn_query(ippropia, index, documento, criterio)
+    
     indices = []
     c = 0
     for i in texto_paginas:
@@ -256,5 +256,5 @@ def summarize(es__host1, indice, name, criterion):
 			except:
 				pass
 
-    vec_list = (phrases, get_phrase(nodes,phrases), sorted(scores.values(),reverse=True), scroll)
+    vec_list = (phrases, get_phrase(nodes,phrases, text), sorted(scores.values(),reverse=True), scroll)
     return vec_list
