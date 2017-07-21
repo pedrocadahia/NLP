@@ -282,5 +282,3 @@ def create():
     except:
             print("error occured")
             sys.exit(0)
-
-create()
