@@ -10,7 +10,7 @@
 #######################################################################
 #  PARAMETROS
 # archivo = "C:/Users/pcadahia/Desktop/d1/04_019-025_14.pdf"
-archivo = "D:/Judicial/data/7712964.pdf"
+archivo = "D://Judicial//input//d1//04_019-025_14.pdf"
 # import sys
 # sys.stdout.encoding
 # chardet.detect(texto)
@@ -50,7 +50,7 @@ def pdf2txt(path):
     return text, numpages
 
 
-texto = pdf2txt(archivo)
+texto = pdf2txt(archivo)[0]
 
 #########################################################################
 # Comenzamos el proceso
@@ -268,4 +268,5 @@ def summarize(doc, k=None):
     nodes = sentences(text[0])
     edges = connect(nodes)
     scores = rank(nodes, edges)
-    return sorted(scores, key=scores.get, reverse=True)[k]
+    return sorted(scores, key=scores.get, reverse=True)[:k]
+
