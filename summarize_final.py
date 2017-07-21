@@ -106,7 +106,7 @@ def del_strange_charact(txt):
     return prev_txt
 
 
-# Set de funciones para preprocessing para tokenizar correctamente
+# Set de funciones para preprocessing para tokenizar correctamente 
 def reduce_concat(x, sep=""):
     return reduce(lambda s, y: s + sep + y, x)
 
