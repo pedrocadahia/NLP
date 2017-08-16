@@ -1,0 +1,47 @@
+import psycopg2 as p
+from pprint import pprint
+
+# Parametros de prueba
+dbname= 'aeacus_kdd'
+dbuser= 'aeacus'
+dbpass= 'aeacus##sij2016'
+host= '172.22.248.221'
+port = '5432'
+
+# Clase para manipular una base de datos postgressql desde python
+class DBConn:
+    def __init__(self,dbname,dbuser,dbpass,host,port):
+        con_str = str('dbname='+'\''+dbname+'\''+' user='+'\''+dbuser+'\''+' host='+'\''+host+'\''+' password='+'\''+dbpass+'\''+' port='+'\''+port+'\'')
+        pprint("Conectando a: [%s]..." % (con_str))
+        try:
+            self.connection = p.connect(con_str)
+            self.connection.autocommit = True
+            self.cursor = self.connection.cursor()
+            pprint("Conectado")
+        
+        except (Exception, p.DatabaseError) as error:
+            pprint(error)
+    
+    def create_table(self, table_name, columns):
+        pprint("CREATE TABLE "+table_name+" ".join(columns))
+        self.cursor.execute("CREATE TABLE "+table_name+" ".join(columns))        
+        
+    def insert_record(self, record, table):
+        insert_command = "INSERT INTO "+table+" (columna1, columna2) VALUES('"+record[0]+"'.'"+record[1]+"')"
+        pprint(insert_command)
+        self.cursor.execute(insert_command)
+    
+    def query_all(self, table):
+        pprint("SELECT * FROM "+table)
+        self.cursor.execute("SELECT * FROM "+table)
+        elements = self.cursor.fetchall()
+        for item in elements:
+            pprint("each element: {0}".format(item))
+            
+    def update_record(self,update_command, table):
+        pprint("UPDATE "+table+" SET "+update_command)
+        self.cursor.execute("UPDATE "+table+" SET "+update_command)
+    
+    def close_connection(self):
+        self.cursor.close()
+        self.connection.close()
