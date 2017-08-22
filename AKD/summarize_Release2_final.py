@@ -290,15 +290,6 @@ def rank(nodes, edges):
     return nx.pagerank(graph)
 
 
-def rank(nodes, edges):
-    import networkx as nx
-    # el output es un dict de unos nodes y edges
-    graph = nx.DiGraph()
-    graph.add_nodes_from(nodes)
-    graph.add_weighted_edges_from(edges)
-    return nx.pagerank(graph)
-
-
 def get_phrase(fra_res, con_pag, langu):
     from functools import partial as par
     # fra_pag es una lista de listas
