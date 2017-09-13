@@ -45,7 +45,10 @@ class DBConn:
     def close_connection(self):
         self.cursor.close()
         self.connection.close()
+# db_conn.execute_query('SELECT dm_accesses.*, dm_paper_access.* FROM dm_accesses, dm_paper_access where dm_accesses.paper = dm_paper_access."id"')
+# db_conn.execute_query('SELECT dm_session.*, dm_accesses.*, dm_paper_access.* FROM dm_session, dm_accesses, dm_paper_access where dm_accesses.paper = dm_paper_access."id" and dm_session."id" = dm_accesses.sessionid')
 
+# DB = db_conn.execute_query('SELECT dm_session.*, dm_accesses.*, dm_paper_access.* FROM dm_session, dm_accesses, dm_paper_access where dm_accesses.paper = dm_paper_access."id" and dm_session."id" = dm_accesses.sessionid')
 DB = db_conn.execute_query('SELECT dm_session.*, dm_accesses.*, dm_paper_access.* FROM dm_accesses LEFT OUTER JOIN dm_session ON dm_session."id" = dm_accesses.sessionid LEFT OUTER JOIN dm_paper_access ON dm_paper_access."id" = dm_accesses.paper ORDER BY accessdate') 
 
 # Preprocessing
