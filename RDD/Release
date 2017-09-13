@@ -1,0 +1,47 @@
+import psycopg2 as p
+import pandas as pd
+from pprint import pprint
+dbname= 'aeacus_kdd' #aeacus_kdd
+dbuser= 'aeacus'
+dbpass= 'aeacus##sij2016'
+host= '172.22.248.221'
+port = '5432'
+
+class DBConn:
+    def __init__(self,dbname,dbuser,dbpass,host,port):
+        con_str = str('dbname='+'\''+dbname+'\''+' user='+'\''+dbuser+'\''+' host='+'\''+host+'\''+' password='+'\''+dbpass+'\''+' port='+'\''+port+'\'')
+        pprint("Conectando a: [%s]..." % con_str)
+        try:
+            self.connection = p.connect(con_str)
+            self.connection.autocommit = True
+            self.cursor = self.connection.cursor()
+            pprint("Conectado")
+        
+        except (Exception, p.DatabaseError) as error:
+            pprint(error) 
+        
+    def insert_record(self, table, rows, values):
+        # Inserta Registros en la tabla indicada.
+        concat=lambda x: reduce(lambda s, y: str(s) + "," + str(y),x)
+        query_insert = "INSERT INTO "+table+" ( "+concat(rows)+" ) "+" VALUES ("+concat(values)+")"
+        pprint(query_insert)
+        self.cursor.execute(query_insert)
+    
+    def query_all(self, table):
+        # Consulta de toda la tabla
+        query="SELECT * FROM "+table
+        pprint(query)
+        return pd.read_sql_query( query, self.connection)
+            
+    def update_record(self,table, cambio, condicion ):
+        #en construccion, necesaria
+        query_update = "UPDATE "+table+" SET "+cambio+' where '+condicion
+        pprint(query_update)
+        self.cursor.execute(query_update)
+    
+    def execute_query(self,query):
+        return pd.read_sql_query( query, self.connection)
+    
+    def close_connection(self):
+        self.cursor.close()
+        self.connection.close()
