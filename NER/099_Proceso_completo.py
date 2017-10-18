@@ -21,7 +21,6 @@ import numpy as np
 from nltk.corpus import stopwords
 
 
-
 def buscaPosicionRegexTexto(regex, texto):
 	iter = re.finditer(regex, texto)
 	indices = [m.span() for m in iter]
@@ -36,7 +35,7 @@ def buscaPrincipioRegexTexto(regex, texto):
 	result = []
 	for item in aux:
 		result.extend(re.findall(regex, item))
-		
+
 	return result
 
 def buscaPosicionPrincipioRegexTexto(regex, texto):
@@ -349,149 +348,193 @@ if found:
 		else:
 			return(reduce(lambda x, y: str(x) + sep + str(y), x))
 
-	def guardaHDFS(texto, filename, sc):
-		rdd = sc.parallelize(texto)
-		rdd.saveAsTextFile(filename)
+# 	def guardaHDFS(texto, filename, sc):
+# 		rdd = sc.parallelize(texto)
+# 		rdd.saveAsTextFile(filename)
+#
+# 	def guardaDFHDFS(dataframe, filename, sc):
+#
+# 		textoGuarda = ''
+# 		for columna in dataframe.columns:
+# 			textoGuarda += columna + "\t"
+# 			textoGuarda += str(reduce_concat_hdfs(dataframe[columna].tolist(), sep = "   ")) + "\n"
+#
+# 		guardaHDFS([textoGuarda], filename, sc)
+#
+# 	def readDFHDFS(path2read, sc):
+#
+# 		# llegim path
+# 		textFile = sc.textFile(path2read)
+# 		texto = textFile.collect()
+#
+# 		if isinstance(texto, list):
+# 			texto = str(texto)
+#
+# 		# Preparem
+# 		texto = texto.replace("[u'", "")
+# 		texto = texto.replace("]", "")
+# 		texto = texto.replace('", u"', "', u'")
+# 		texto = texto.replace("', u\"", "', u'")
+# 		texto = texto.replace("\", u'", "', u'")
+# 		lista_texto = texto.split("', u'")
+#
+# 		# Construim dades
+# 		newDict = dict()
+# 		for item in lista_texto:
+# #			print item
+# 			aux_l = item.split("\\t")
+# 			if len(aux_l) == 1:
+# 				aux_l = item.split("\t")
+#
+# 			if len(aux_l) > 1:
+# 				values = aux_l[1].split("		")
+#
+# 				# Si todos son numericos lo pasamos a numerico
+# 				if all([len(re.findall("[0-9]", item)) == len(item) for item in values]):
+# 					values = [int(item) for item in values]
+#
+# 				elif all([len(re.findall("[0-9]", item)) == (len(item) - 1) for item in values]) and all([(len(item) - 1) == len(item.replace(".", "")) for item in values]):
+# 					values = [float(item) for item in values]
+#
+# 				newDict[aux_l[0]] = values
+#
+# 		result = pd.DataFrame(newDict)
+#
+# 		return result
+#
+# 	def guardarDictHDFS(dict2Save, filename, sc):
+#
+# 		textoGuarda = ''
+# 		for ikey in dict2Save.keys():
+# 			textoGuarda += "\t" + ikey + "\n"
+# 			if not isinstance(dict2Save[ikey], dict):
+# 				if isinstance(dict2Save[ikey], list):
+# 					textoGuarda += "\t:::" + reduce_concat_hdfs(dict2Save[ikey], sep = "	 ") + "\n"
+# 				else:
+# 					textoGuarda += "\t:::" + dict2Save[ikey] + "\n"
+# 			else:
+# 				for ikey2 in dict2Save[ikey].keys():
+# 					textoGuarda += "\t\t" + ikey2 + "\n"
+# 					if not isinstance(dict2Save[ikey][ikey2], dict):
+# 						if isinstance(dict2Save[ikey][ikey2], list):
+# 							textoGuarda += "\t\t:::" + reduce_concat_hdfs(dict2Save[ikey][ikey2], sep = "		") + "\n"
+# 						else:
+# 							textoGuarda += "\t\t:::" + dict2Save[ikey][ikey2] + "\n"
+# 					else:
+# 						for ikey3 in dict2Save[ikey][ikey2].keys():
+# 							textoGuarda += "\t\t\t" + ikey3 + "\n"
+# 							if not isinstance(dict2Save[ikey][ikey2][ikey3], dict):
+# 								if isinstance(dict2Save[ikey][ikey2][ikey3], list):
+# 									textoGuarda += "\t\t\t:::" + reduce_concat_hdfs(dict2Save[ikey][ikey2][ikey3], sep = "	 ") + "\n"
+# 								else:
+# 									textoGuarda += "\t\t\t:::" + dict2Save[ikey][ikey2][ikey3] + "\n"
+# 							else:
+# 								textoGuarda += "\t\t\t:::" + str(dict2Save[ikey][ikey2][ikey3])
+# 								textoGuarda +=	"\n"
+#
+#
+# 		guardaHDFS([textoGuarda], filename, sc)
+#
+# 	def readDictHDFS(path2read, sc):
+#
+# 		# llegim path
+# 		textFile = sc.textFile(path2read)
+# 		texto = textFile.collect()
+#
+# 		texto = unicode(str(texto))
+#
+# 		# Preparem
+# 		texto = texto.replace("[u'", "")
+# 		texto = texto.replace("]", "")
+# 		lista_texto = texto.split("', u'")
+#
+# 		# Construim dades
+# 		noms_llista = ["referencias", "fin", "inicio"]
+#
+# 		result = dict()
+# 		for item in lista_texto:
+# 			if not ":::" in item:
+# 				if "\t\t\t" in item:
+# 					ikey3 = item.replace("\t\t\t", "")
+# 				elif "\t\t" in item:
+# 					ikey2 = item.replace("\t\t", "")
+# 				elif "\t" in item:
+# 					ikey = item.replace("\t", "")
+#
+# 			else:
+# 				if "\t\t\t" in item:
+# 					if ikey not in result.keys():
+# 						result[ikey] = dict()
+# 					if ikey2 not in result[ikey].keys():
+# 						result[ikey][ikey2] = dict()
+#
+# 					if ikey3 in noms_llista:
+# 						result[ikey][ikey2][ikey3] = []
+# 						result[ikey][ikey2][ikey3].append(item.replace("\t\t\t:::", ""))
+# 					else:
+# 						result[ikey][ikey2][ikey3] = item.replace("\t\t\t:::", "")
+#
+# 				elif "\t\t" in item:
+# 					if ikey not in result.keys():
+# 						result[ikey] = dict()
+# 					if ikey2 in noms_llista:
+# 						result[ikey][ikey2] = []
+# 						result[ikey][ikey2].append(item.replace("\t\t:::", ""))
+# 					else:
+# 						result[ikey][ikey2] = item.replace("\t\t:::", "")
+#
+# 				elif "\t" in item:
+# 					if ikey in noms_llista:
+# 						result[ikey] = []
+# 						result[ikey].append(item.replace("\t:::", ""))
+# 					else:
+# 						result[ikey] = item.replace("\t:::", "")
+#
+# 		return result
+	def save_string_HDFS(string, uri):
+		# Saves the given string into HDFS
 
-	def guardaDFHDFS(dataframe, filename, sc):
+		import subprocess
+		from pipes import quote
+		hdfs = subprocess.Popen("hdfs dfs -put - {0}".format(quote(uri)), stdin=subprocess.PIPE, shell=True)
+		hdfs.communicate(string)
+		return hdfs.wait()
 
-		textoGuarda = ''
-		for columna in dataframe.columns:
-			textoGuarda += columna + "\t"
-			textoGuarda += str(reduce_concat_hdfs(dataframe[columna].tolist(), sep = "   ")) + "\n"
-		
-		guardaHDFS([textoGuarda], filename, sc)
-		
-	def readDFHDFS(path2read, sc):
+	# def guardaHDFS(texto, filename, sc):
 
-		# llegim path
-		textFile = sc.textFile(path2read)
-		texto = textFile.collect()
-		
-		if isinstance(texto, list):
-			texto = str(texto)
-			
-		# Preparem
-		texto = texto.replace("[u'", "")
-		texto = texto.replace("]", "")
-		texto = texto.replace('", u"', "', u'")
-		texto = texto.replace("', u\"", "', u'")
-		texto = texto.replace("\", u'", "', u'")
-		lista_texto = texto.split("', u'")
-		
-		# Construim dades
-		newDict = dict()
-		for item in lista_texto:
-#			print item
-			aux_l = item.split("\\t")
-			if len(aux_l) == 1:
-				aux_l = item.split("\t")
-			
-			if len(aux_l) > 1:
-				values = aux_l[1].split("		")
-				
-				# Si todos son numericos lo pasamos a numerico
-				if all([len(re.findall("[0-9]", item)) == len(item) for item in values]):
-					values = [int(item) for item in values]
-					
-				elif all([len(re.findall("[0-9]", item)) == (len(item) - 1) for item in values]) and all([(len(item) - 1) == len(item.replace(".", "")) for item in values]):
-					values = [float(item) for item in values]
-					
-				newDict[aux_l[0]] = values
-				
-		result = pd.DataFrame(newDict)
-		
-		return result
-		
-	def guardarDictHDFS(dict2Save, filename, sc):
+	def save_DF_HDFS(dataframe, sqlContext, uri):
+		# Saves the given dataframe to Hadoop.
+		# dataframe: a Spark or Pandas DataFrame
+		# uri: a hadoop URI
 
-		textoGuarda = ''
-		for ikey in dict2Save.keys():
-			textoGuarda += "\t" + ikey + "\n"
-			if not isinstance(dict2Save[ikey], dict):
-				if isinstance(dict2Save[ikey], list):
-					textoGuarda += "\t:::" + reduce_concat_hdfs(dict2Save[ikey], sep = "	 ") + "\n"
-				else:
-					textoGuarda += "\t:::" + dict2Save[ikey] + "\n"
-			else:
-				for ikey2 in dict2Save[ikey].keys():
-					textoGuarda += "\t\t" + ikey2 + "\n"
-					if not isinstance(dict2Save[ikey][ikey2], dict):
-						if isinstance(dict2Save[ikey][ikey2], list):
-							textoGuarda += "\t\t:::" + reduce_concat_hdfs(dict2Save[ikey][ikey2], sep = "		") + "\n"
-						else:
-							textoGuarda += "\t\t:::" + dict2Save[ikey][ikey2] + "\n"
-					else:
-						for ikey3 in dict2Save[ikey][ikey2].keys():
-							textoGuarda += "\t\t\t" + ikey3 + "\n"
-							if not isinstance(dict2Save[ikey][ikey2][ikey3], dict):
-								if isinstance(dict2Save[ikey][ikey2][ikey3], list):
-									textoGuarda += "\t\t\t:::" + reduce_concat_hdfs(dict2Save[ikey][ikey2][ikey3], sep = "	 ") + "\n"
-								else:
-									textoGuarda += "\t\t\t:::" + dict2Save[ikey][ikey2][ikey3] + "\n"
-							else:
-								textoGuarda += "\t\t\t:::" + str(dict2Save[ikey][ikey2][ikey3])
-								textoGuarda +=	"\n"
-				
+		sparkDataframe = dataframe if isinstance(dataframe, SparkDataframe) else sqlContext.createDataFrame(dataframe)
+		# We use Parquet as it will be a read-only file afterwards
+		sparkDataframe.write.parquet(uri)
 
-		guardaHDFS([textoGuarda], filename, sc)
 
-	def readDictHDFS(path2read, sc):
+	def read_DF_HDFS(uri, sqlContext):
+		# Reads a Pandas DataFrame stored in Parquet format from HDFS
 
-		# llegim path
-		textFile = sc.textFile(path2read)
-		texto = textFile.collect()
-		
-		texto = unicode(str(texto))
-		
-		# Preparem
-		texto = texto.replace("[u'", "")
-		texto = texto.replace("]", "")
-		lista_texto = texto.split("', u'")
-		
-		# Construim dades
-		noms_llista = ["referencias", "fin", "inicio"]
+		return sqlContext.read.parquet(uri).toPandas()
 
-		result = dict()
-		for item in lista_texto:
-			if not ":::" in item:
-				if "\t\t\t" in item:
-					ikey3 = item.replace("\t\t\t", "")
-				elif "\t\t" in item:
-					ikey2 = item.replace("\t\t", "")
-				elif "\t" in item:
-					ikey = item.replace("\t", "")
-					
-			else:
-				if "\t\t\t" in item:
-					if ikey not in result.keys():
-						result[ikey] = dict()
-					if ikey2 not in result[ikey].keys():
-						result[ikey][ikey2] = dict()
-					
-					if ikey3 in noms_llista:
-						result[ikey][ikey2][ikey3] = []
-						result[ikey][ikey2][ikey3].append(item.replace("\t\t\t:::", ""))
-					else:
-						result[ikey][ikey2][ikey3] = item.replace("\t\t\t:::", "")
-					
-				elif "\t\t" in item:
-					if ikey not in result.keys():
-						result[ikey] = dict()
-					if ikey2 in noms_llista:
-						result[ikey][ikey2] = []
-						result[ikey][ikey2].append(item.replace("\t\t:::", ""))
-					else:
-						result[ikey][ikey2] = item.replace("\t\t:::", "")
-						
-				elif "\t" in item:
-					if ikey in noms_llista:
-						result[ikey] = []
-						result[ikey].append(item.replace("\t:::", ""))
-					else:
-						result[ikey] = item.replace("\t:::", "")
-			
-		return result
+
+	# def save_dict_hdfs(dictionary, uri):
+	#     # Saves the given dictionary into a JSON file in HDFS
+	#
+	#     from json import dumps
+	#     save_string_HDFS(dumps(dictionary), uri)
+	#
+	#
+	# def read_dict_hdfs(uri):
+	#     # Reads a python dictionary from a JSON file in HDFS
+	#
+	#     import subprocess
+	#     from pipes import quote
+	#     hdfs = subprocess.Popen("hdfs dfs -cat {0}".format(quote(uri)), stdout=subprocess.PIPE, shell=True)
+	#     stdout, _ = hdfs.communicate()
+	#     from json import loads
+	#     return loads(stdout)
+
 
 
 # =============================== #
@@ -1114,7 +1157,7 @@ if not eslocal:
 		files2Eval = sys.argv[6].split("/")
 		es_hdfs = sys.argv[7]
 		pars_db = sys.argv[8]
-		print "Los archivos a evaluar son los siguientes:\n	 '" + reduce(lambda x, y: x + "', '" + y, files2Eval) + "'."
+		print ("Los archivos a evaluar son los siguientes:\n	 '" + reduce(lambda x, y: x + "', '" + y, files2Eval) + "'.")
 
 if es_hdfs in ["True", "true", "TRUE", True]:
 	es_hdfs = True
@@ -1126,7 +1169,9 @@ if es_hdfs:
 	import subprocess
 	from pyspark import SparkConf, SparkContext
 	from pyspark.sql import SQLContext, HiveContext
-	
+	from pyspark.sql.types import *
+	from pyspark.sql import DataFrame as SparkDataframe
+
 	# Crear la configuracion de spark
 	conf = (SparkConf()
 					.setAppName("ejemplo")
@@ -1207,7 +1252,7 @@ for filename in files2Eval:
 		# === 019_Implementacion_Leyes === #
 		# ================================ #
 
-		print "Procesando leyes..."
+		print ("Procesando leyes...")
 
 		# Current directories
 		OUTPUTDIR = PATH + "output/resultados_leyes/"
@@ -1334,7 +1379,7 @@ for filename in files2Eval:
 		leyes = list(set(leyes))
 		
 		if len(leyes) == 0:
-			print "No tenemos leyes para este documento"
+			print ("No tenemos leyes para este documento")
 		else:
 			
 			# Regulamos que no se incluyan unos dentro de otros los textos
@@ -1534,8 +1579,8 @@ for filename in files2Eval:
 			if guardaResultados:
 				if es_hdfs:
 					fileSave = OUTPUTDIR + filename.lower().replace(".pdf", "") + "_info_pos"
-					guardaDFHDFS(listRefs, fileSave, sc)
-					
+					# guardaDFHDFS(listRefs, fileSave, sc)
+					save_DF_HDFS(listRefs, sqlContext,  fileSave) # (dataframe, sqlContext, uri)
 				else:
 					listRefs.to_csv(path_or_buf = OUTPUTDIR + filename.lower().replace(".pdf", "") + "_info_pos.csv", sep = "|")
 			
@@ -1572,13 +1617,13 @@ for filename in files2Eval:
 			if guardaES:
 				pass
 
-		print "Leyes finalizado."
+		print ("Leyes finalizado.")
 
 		# ================================= #
 		# === 039_Implementacion_fechas === #
 		# ================================= #
 
-		print "Procesando fechas"
+		print ("Procesando fechas")
 
 		# Current directories
 		OUTPUTDIR = PATH + "output/resultados_fechas/"
@@ -1675,7 +1720,7 @@ for filename in files2Eval:
 		fechas = list(set(fechas))
 
 		if len(fechas) == 0:
-			print "No tenemos fechas para este documento"
+			print ("No tenemos fechas para este documento")
 		else:
 			# Regulamos que no se incluyan unos dentro de otros los textos
 			fechas = pd.DataFrame(fechas)
@@ -2092,11 +2137,12 @@ for filename in files2Eval:
 				if es_hdfs:
 
 					fileSave = OUTPUTDIR + filename.lower().replace(".pdf", "") + "_info_pos"
-					guardaDFHDFS(ddNorm, fileSave, sc)
+					# guardaDFHDFS(ddNorm, fileSave, sc)
+					save_DF_HDFS(ddNorm, sqlContext, fileSave)
 					
-					fileentities = OUTPUTDIR + filename.lower().replace(".pdf", "") + "_entities"
-					guardarDictHDFS(result, fileentities, sc)
-					
+					# fileentities = OUTPUTDIR + filename.lower().replace(".pdf", "") + "_entities"
+					# guardarDictHDFS(result, fileentities, sc)
+
 					
 				else:
 					ddNorm.to_csv(path_or_buf = OUTPUTDIR + filename.lower().replace(".pdf", "") + "_info_pos.csv", sep = "|")
@@ -2154,13 +2200,13 @@ for filename in files2Eval:
 			if guardaES:
 				pass
 
-		print "Fechas finalizado."
+		print ("Fechas finalizado.")
 
 		# ===================================== #
 		# === 049_Implementacion_cantidades === #
 		# ===================================== #
 
-		print "Procesando cantidades..."
+		print ("Procesando cantidades...")
 
 		# Current directories
 		OUTPUTDIR = PATH + "output/resultados_cant/"
@@ -2250,7 +2296,7 @@ for filename in files2Eval:
 				for i_final in dictAct['finales']:
 					listFinal.extend(buscaPosicionRegexTexto(i_final, aux_texto_fin))
 				if len(listInicios) == 0 or len(listFinal) == 0:
-					print "No tenemos cantidades en este documento"
+					print ("No tenemos cantidades en este documento")
 					continue
 				listInicios = array(listInicios)
 				listFinal = array(listFinal)
@@ -2299,7 +2345,7 @@ for filename in files2Eval:
 		
 		
 		if len(cantidades) == 0:
-			print "No tenemos cantidades en este documento"
+			print ("No tenemos cantidades en este documento")
 		else:
 				
 			# Regulamos que no se incluyan unos dentro de otros los textos
@@ -2515,7 +2561,8 @@ for filename in files2Eval:
 				if es_hdfs:
 
 					fileSave = OUTPUTDIR + filename.lower().replace(".pdf", "") + "_info_pos"
-					guardaDFHDFS(ddNorm, fileSave, sc)
+					# guardaDFHDFS(ddNorm, fileSave, sc)
+					save_DF_HDFS(ddNorm, sqlContext, fileSave)
 					
 				else:
 					ddNorm.to_csv(path_or_buf = OUTPUTDIR + filename.lower().replace(".pdf", "") + "_info_pos.csv", sep = "|")
@@ -2681,24 +2728,28 @@ for filename in files2Eval:
 					
 				# Vemos en que pagina y que posicion ocupa cada entidad
 				ddNorm["pagina"] = '-1'
+
 				for i in range(ddNorm.shape[0]):
+
 					posBusca = ddNorm.loc[[i], ["posRawDocIni", "posRawDocFin"]]
 					posBusca = posBusca.values.tolist()[0]
 					encontrada = False
 					ipag = 0
 					while not encontrada and ipag < len(listpos):
+
 						ipag += 1
 						if listpos[ipag - 1][0] <= posBusca[0] and listpos[ipag - 1][1] >= posBusca[1]:
+
 							ddNorm["pagina"][i] = str(ipag)
 							encontrada = True
 						elif len(listpos) > ipag:
 							if listpos[ipag - 1][1] >= posBusca[0] and listpos[ipag][0] <= posBusca[1]:
 								ddNorm["pagina"][i] = str(ipag - 1) + "," + str(ipag)
 								encontrada = True
-				
+
 				ddNorm[ddNorm["pagina"] == -1]["pagina"] = len(listpos)
 				ddNorm = posicionporpagina(ddNorm, listpos)
-				
+
 				# Subimos diccionarios a ES
 				for i in range(ddNorm.shape[0]):
 					
@@ -2712,21 +2763,21 @@ for filename in files2Eval:
 							pos_final = int(ddNorm["posRawDocFin"][i]),
 							texto = ddNorm["Referencia"][i],
 							texto_norm = ddNorm["Referencia_Normalizada"][i],
-							contexto = ddNorm["Contexto"][i]
+							contexto = ddNorm["Contexto"][i].decode('unicode-escape')
 						)
 					}
 
 					load2Elastic(dictloadES, INDEX_NAME = indicewrite, TYPE_NAME =	"doc", newesconn = Elasticsearch([ipwrite]))
 		
 
-		print "Cantidades finalizado."
+		print ("Cantidades finalizado.")
 
 
 		# ================================= #
 		# === 059_Implementacion_plazos === #
 		# ================================= #
 
-		print "Procesando plazos..."
+		print ("Procesando plazos...")
 
 		# Current directories
 		OUTPUTDIR = PATH + "output/resultados_plazos/"
@@ -2761,7 +2812,6 @@ for filename in files2Eval:
 		limSimFrases = 0.15	# Limit a partir del qual diem que 2 frases s'assemblen
 
 		guardaES = guardaES and not eslocal	 # Solo guardamos a elastic si no se ejecuta desde local
-
 		if eslocal:
 			RawReadedFile = pdf2txt(INPUTREAD + filename)
 		else:
@@ -2772,7 +2822,6 @@ for filename in files2Eval:
 		# ================== #
 		# === Script 050 === #
 		# ================== #
-		
 		# Buscamos posiciones teniendo en cuenta lo maximo para atras
 		index_points_max_enrere = []
 		for dictstr2search in SearchMaxEnrere:
@@ -2781,7 +2830,7 @@ for filename in files2Eval:
 				idxAct.extend(buscaPosicionRegexTexto(str2search, readedFile))
 		
 			index_points_max_enrere.append(idxAct)
-		
+
 		plazos = []
 		for i in range(len(SearchMaxEnrere)):
 			dictAct = SearchMaxEnrere[i]
@@ -2807,13 +2856,13 @@ for filename in files2Eval:
 						plazos.append((min(listInicios[sel, 0]), item[0] + max(listFinal[selFin, 1])))
 					else:
 						plazos.append((min(listInicios[sel, 0]), item[0] + min(listFinal[:, 1])))
-					
-			
+
+
 		# Buscamos registros unicos
 		plazos = list(set(plazos))
 		
 		if len(plazos) == 0:
-			print "No hemos encontrado plazos en este documento"
+			print ("No hemos encontrado plazos en este documento")
 		else:
 				
 			# Regulamos que no se incluyan unos dentro de otros los textos
@@ -2826,12 +2875,10 @@ for filename in files2Eval:
 					plazos[i - jresta] = [plazos[i - 1 - jresta][0], plazos[i - jresta][1]]
 					plazos.pop(i - 1 - jresta)
 					jresta += 1
-			
+
 			# ================== #
 			# === Script 051 === #
 			# ================== #
-
-			# === #
 			# Canvi respecte script 051!!
 			listRefs = deepcopy(plazos)
 			listRefs = pd.DataFrame(listRefs)
@@ -2958,8 +3005,8 @@ for filename in files2Eval:
 			if guardaResultados:
 				if es_hdfs:
 					fileSave = OUTPUTDIR + filename.lower().replace(".pdf", "") + "_info_pos"
-					guardaDFHDFS(ddNorm, fileSave, sc)
-					
+					# guardaDFHDFS(ddNorm, fileSave, sc)
+					save_DF_HDFS(ddNorm, sqlContext, fileSave)
 				else:
 					ddNorm.to_csv(path_or_buf = OUTPUTDIR + filename.lower().replace(".pdf", "") + "_info_pos.csv", sep = "|")
 			
@@ -3112,6 +3159,8 @@ for filename in files2Eval:
 				
 				# Vemos en que pagina y que posicion ocupa cada entidad
 				ddNorm["pagina"] = '-1'
+
+
 				for i in range(ddNorm.shape[0]):
 					posBusca = ddNorm.loc[[i], ["posRawDocIni", "posRawDocFin"]]
 					posBusca = posBusca.values.tolist()[0]
@@ -3120,18 +3169,22 @@ for filename in files2Eval:
 					while not encontrada and ipag < len(listpos):
 						ipag += 1
 						if listpos[ipag - 1][0] <= posBusca[0] and listpos[ipag - 1][1] >= posBusca[1]:
+
 							ddNorm["pagina"][i] = str(ipag)
 							encontrada = True
 						elif len(listpos) > ipag:
 							if listpos[ipag - 1][1] >= posBusca[0] and listpos[ipag][0] <= posBusca[1]:
 								ddNorm["pagina"][i] = str(ipag - 1) + "," + str(ipag)
 								encontrada = True
-				
+
 				ddNorm[ddNorm["pagina"] == -1]["pagina"] = len(listpos)
 				ddNorm = posicionporpagina(ddNorm, listpos)
-				
-				# Subimos diccionarios a ES
+
+				########################################## prueba error
+
+				iii=0
 				for i in range(ddNorm.shape[0]):
+					iii+=1
 
 					# Creamos diccionario
 					dictloadES = {
@@ -3143,21 +3196,20 @@ for filename in files2Eval:
 							pos_final = int(ddNorm["posRawDocFin"][i]),
 							texto = ddNorm["Referencia"][i],
 							texto_norm = ddNorm["Referencia_Normalizada"][i],
-							contexto = ddNorm["Contexto"][i]
+							contexto = ddNorm["Contexto"][i].decode('unicode-escape')
 						)
 					}
 
-					load2Elastic(dictloadES, INDEX_NAME = indicewrite, TYPE_NAME =	"doc", newesconn = Elasticsearch([ipwrite]))
-		
+					load2Elastic(dictloadES, INDEX_NAME = str(indicewrite), TYPE_NAME =	"doc", newesconn = Elasticsearch([ipwrite]))
 
-		print "Plazos finalizado."
 
+		print ("Plazos finalizado")
 
 		# ============================== #
 		# === 020_Union_fechas_leyes === #
 		# ============================== #
 
-		print "Procesando union fechas y leyes..."
+		print ("Procesando union fechas y leyes...")
 
 		# Current directories
 		OUTPUTWRITE = PATH + "output/uni_fechas_ley/"
@@ -3210,7 +3262,7 @@ for filename in files2Eval:
 		faltanFechas = False
 		
 		if (not exists(filenormleyes) or not exists(filenormfecha)) and not es_hdfs:
-			print "No tenim detectada la informacio pel document " + filename + ", per tant no el processem."
+			print ("No tenim detectada la informacio pel document " + filename + ", per tant no el processem.")
 			if not exists(filenormleyes):
 				faltanLeyes = True
 			if not exists(filenormfecha):
@@ -3224,15 +3276,17 @@ for filename in files2Eval:
 				
 		elif es_hdfs:
 			try:
-				dataNormLeyes = readDFHDFS(filenormleyes, sc)
+				# dataNormLeyes = readDFHDFS(filenormleyes, sc)
+				dataNormLeyes = read_DF_HDFS(filenormleyes, sqlContext)
 			except Exception as e:
-				print "No tenemos detectada la informacion para el documento " + filename + " de leyes, por tanto no la procesamos."
+				print ("No tenemos detectada la informacion para el documento " + filename + " de leyes, por tanto no la procesamos.")
 				faltanLeyes = True
 				
 			try:
-				dataNormFecha = readDFHDFS(filenormfecha, sc)
+				# dataNormFecha = readDFHDFS(filenormfecha, sc)
+				dataNormFecha = read_DF_HDFS(filenormfecha, sqlContext)
 			except Exception as e:
-				print "No tenemos detectada la informacion para el documento " + filename + " de fechas, por tanto no la procesamos."
+				print ("No tenemos detectada la informacion para el documento " + filename + " de fechas, por tanto no la procesamos.")
 				faltanFechas = True
 		
 		# Si solo tenemos uno de los dos archivos (fechas o leyes) lo subimos directamente a Elastic
@@ -3699,10 +3753,10 @@ for filename in files2Eval:
 					load2Elastic(fecha2loadES, INDEX_NAME = indicewrite, TYPE_NAME =	"doc", newesconn = Elasticsearch([ipwrite]))
 		
 		
-		print "Union fechas y leyes finalizado."
+		print ("Union fechas y leyes finalizado.")
 
 	except Exception as e:
-		print e
+		print (e)
 		ha_fallado = True
 
 	import psycopg2 as p
@@ -3728,7 +3782,6 @@ for filename in files2Eval:
 	cursor.execute(queryUpdate)
 	
 	print(filename + " procesado!!")
-
 
 if utiliza_logs:
 	sys.stdout = old_stdout
