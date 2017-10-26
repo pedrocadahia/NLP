@@ -1,0 +1,281 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+###################################################################################
+#                            RDD PEDRO CADAHIA                                    #
+###################################################################################
+# Crear un scoring de documentos segun interaccion de los usuarios con una app
+###################################################################################
+# Carga de dependencias
+import pandas as pd
+import numpy as np
+from sklearn.decomposition import PCA
+import psycopg2 as p
+from pprint import pprint
+
+# Parametros de entrada de algoritmo
+dbname = 'aeacus_kdd'  # aeacus_kdd
+dbuser = 'aeacus'
+dbpass = 'aeacus##sij2016'
+host = '172.22.248.221'
+port = '5432'
+
+
+# FUNCIONES Y Classes
+class DBConn:
+    def __init__(self, dbname, dbuser, dbpass, host, port):
+        con_str = str(
+            'dbname=' + '\'' + dbname + '\'' + ' user=' + '\'' + dbuser + '\'' + ' host=' + '\'' + host + '\'' + ' password=' + '\'' + dbpass + '\'' + ' port=' + '\'' + port + '\'')
+        pprint("Conectando a: [%s]..." % con_str)
+        try:
+            self.connection = p.connect(con_str)
+            self.connection.autocommit = True
+            self.cursor = self.connection.cursor()
+            pprint("Conectado")
+
+        except (Exception, p.DatabaseError) as error:
+            pprint(error)
+
+    def insert_record(self, table, rows, values):
+        # Inserta Registros en la tabla indicada.
+        concat = lambda x: reduce(lambda s, y: str(s) + "," + str(y), x)
+        query_insert = "INSERT INTO " + table + " ( " + concat(rows) + " ) " + " VALUES (" + concat(values) + ")"
+        pprint(query_insert)
+        self.cursor.execute(query_insert)
+
+    def query_all(self, table):
+        # Consulta de toda la tabla
+        query = "SELECT * FROM " + table
+        pprint(query)
+        return pd.read_sql_query(query, self.connection)
+
+    def update_record(self, table, cambio, condicion):
+        # en construccion, necesaria
+        query_update = "UPDATE " + table + " SET " + cambio + ' where ' + condicion
+        pprint(query_update)
+        self.cursor.execute(query_update)
+
+    def execute_query(self, query):
+        return pd.read_sql_query(query, self.connection)
+
+    def free_execute(self):
+        return self.cursor.execute
+
+    def close_connection(self):
+        self.cursor.close()
+        self.connection.close()
+
+
+def unificar_df(df):
+    df.columns = pd.io.parsers.ParserBase({'names': df.columns})._maybe_dedup_names(df.columns)
+    return df
+
+
+def filtra(out_ele, obj):
+    return filter(lambda o: o not in out_ele, list(obj))
+
+
+def filtro_BD(BD):
+    # elimina registros de apertura y cierre de sesion ya que no hay datos relevantes
+    return DB.drop(DB[(DB.type == 0) & (DB.subtype == 1) | (DB.type == 0) & (DB.subtype == 2)].index)
+
+
+def find_ncomp(lista_array, umbral=70):
+    import numpy as np
+    if type(lista_array) is list:
+        for i in lista_array:
+            if i >= umbral:
+                selected = i
+                n_comp = lista_array.tolist().index(i) + 1
+                return tuple([selected, n_comp])
+                break
+            else:
+                continue
+    if type(lista_array) is np.ndarray:
+        for i in lista_array:
+            if i >= umbral:
+                selected = i
+                n_comp = lista_array.tolist().index(i) + 1
+                return tuple([selected, n_comp])
+                break
+            else:
+                continue
+
+
+def get_eff(x):
+    import warnings
+    import numpy as np
+    warnings.filterwarnings("error")
+    fun = lambda x: np.nanmean(np.divide(x.groupby('paper').agg({'pages': count_uniques}).pages.as_matrix(),
+                                         x.groupby('paper').agg({'sheets': 'max'}).sheets.as_matrix()))
+    try:
+        return (fun(x))
+    except RuntimeWarning:
+        return 0
+
+
+def summation(X, Y):
+    return sum(list((map(lambda x, y: x * y, X, Y))))
+
+
+def get_score(data_frame, standarize=True):
+    # automatizacion de PCA dado un dataframe, el output será el dataframe con los scores calculados
+    # zscores de df
+    if standarize == True:
+        df_scaled = map_std(data_frame.select_dtypes(include=['float', 'int']))
+    else:
+        df_scaled = data_frame.select_dtypes(include=['float', 'int'])
+    # Fitting PCA
+    pca = fit_pca(df_scaled)
+
+    # Autoselect components
+    corte = find_ncomp(acum(pca.explained_variance_ratio_), umbral=70)
+
+    # NSI = W1 (Factor 1 score) + W2 (Factor 2 score) + ... + Wn (Factor n score)
+    '''Using the proportion of these percentages as weights on the factor score coefficients,
+    a Non- standardized Index (NSI) was developed'''
+    # Computing Weights:  (53.05/55.69) (F1s) + (36.68/55.69) (F2s)
+    W = np.divide(pca.explained_variance_ratio_[:corte[1]] * 100, corte[0])
+    # Computing Projections
+    X = np.array(map(df_scaled.dot, pca.components_)[0:corte[1]])
+    # Computing Index (resultado NSI)
+    NSI = summation(X, W)
+
+    # Computing SI
+    '''This index measures the socioeconomic status of one DA relative to the other on a linear
+    scale. The value of the index can be positive or negative, making it difficult to interpret.
+    Therefore, a Standardized Index (SI) was developed, the value of which can range from 0
+    to 100, using the formula'''
+    SI = standarize_index(NSI)
+
+    data_frame['score'] = SI
+
+    return data_frame
+
+
+def group_mean(df):
+    b = get_score(df).groupby('ids').mean().score.to_dict()
+    df = pd.DataFrame([b.keys(), b.values()]).T
+    df['jurisdiction'], df['classtype'] = zip(*df[0].apply(lambda x: x.split('/_/', 1)))
+    df.columns.values[1] = 'score'
+    df['score'] = standarize_index(df.score)
+    df = df[['jurisdiction', 'classtype', 'score']]
+    return df
+
+
+# FUNCIONES LAMBDA
+map_std = lambda df1: df1.apply(lambda x: (x - x.min()) / (x.max() - x.min()))
+acum = lambda x: np.cumsum(np.round(x, decimals=4) * 100)
+fit_pca = lambda x: PCA(n_components=x.shape[1]).fit(x)
+eigval_eigvec = lambda x: (x.explained_variance_, x.components_)
+CP_dot_obs = lambda x, pca_object, yield_: np.array(map(x.dot, eigval_eigvec(pca_object)[1][:yield_]))
+standarize_index = lambda x: (x - min(x)) / (max(x) - min(x)) * 100
+colNames = ['ids', 'time_elapsed', 'uniques', 'effort']
+get_time = lambda x: x[x.argmax()] - x[x.argmin()]
+deconcat = lambda x, elem: '/_/'.join(x.split('/_/')[0:elem])
+count_uniques = lambda x: x.unique().shape[0]
+get_uniques = lambda x: float(x.unique())
+concat = lambda x, sep: reduce(lambda s, y: str(s) + sep + str(y), x)
+hash_list = lambda s: abs(hash(concat(s, ','))) % (10 ** 8)
+
+######################################################################################################
+# Conexion a BD
+db_conn = DBConn(dbname, dbuser, dbpass, host, port)
+
+# Megajoin de tablas
+DB = db_conn.execute_query(
+    'SELECT dm_session.*, dm_accesses.*, dm_paper_access.* FROM dm_accesses LEFT OUTER JOIN dm_session ON dm_session."id" = dm_accesses.sessionid LEFT OUTER JOIN dm_paper_access ON dm_paper_access."id" = dm_accesses.paper GROUP BY dm_session.id, dm_accesses.id, dm_paper_access.id ORDER BY accessdate')
+
+# Preprocessing
+DB = unificar_df(DB)
+
+duplicados = [s for s in list(DB) if "." in s]
+duplicados.extend(["id"])
+# creacion de label combinado para simplificar syntaxis en operaciones
+DB['label'] = DB.type.astype(str) + '/_/' + DB.subtype.astype(str)
+
+# eliminamos campos con los que no trabajamos
+DB = DB[filtra(duplicados, DB)]
+DB = DB[DB.status != 500][['owner', 'sessionid', 'nig',
+                           'jurisdiction', 'processtype', 'casematter', 'subprocesstype', 'classtype',
+                           'accessdate', 'type', 'subtype', 'label', 'paper', 'page', 'pages', 'sheets']]
+
+# PREPROCESSING GLOBAL
+DB = filtro_BD(DB)
+DB = DB.drop_duplicates()
+DB = DB.dropna(subset=['nig'])
+DB = DB[['sessionid', 'jurisdiction', 'processtype', 'casematter', 'subprocesstype', 'classtype',
+         'accessdate', 'type', 'subtype', 'label', 'paper', 'page', 'pages', 'sheets']]
+
+# Calculos a nivel: jurisdiction + classtype ( 1 nivel)
+# Prepreocesing
+DB1 = DB[DB.jurisdiction.notnull() & DB.classtype.notnull()]
+DB1 = DB1[filter(lambda x: x not in ['casematter', 'processtype', 'subprocesstype'], DB1.columns)]
+DB1['db1_id'] = DB1.jurisdiction.astype(str) + '/_/' + DB1.classtype.astype(str) + '/_/' + DB1.sessionid.astype(str)
+DB1 = DB1[filter(lambda x: x not in ['sessionid', 'classtype', 'jurisdiction', 'type', 'subtype'], DB1.columns)]
+
+dfs = []
+for ids in set(DB1.db1_id):
+    # deconcat son 2 para escoger solo los niveles jurisdiction y classtype unidos por '/_/'
+    dfs.append([deconcat(ids, 2),
+                np.float32(get_time(DB1[(DB1['db1_id'] == ids)]['accessdate'].values).astype('timedelta64[m]')),
+                count_uniques(DB1[(DB1['db1_id'] == ids)].label),
+                get_eff(DB1[(DB1['db1_id'] == ids)])])
+
+DB1_result = pd.DataFrame(dfs, columns=colNames)
+
+DB1_result = DB1_result[DB1_result.time_elapsed != 0]
+
+
+#######################################################################################################
+# simulacion de dataframe para trabajar el Segundo nivel de agregación
+# Eliminar cuando se ponga en deployment ya que habrá campos mas informados que los de ejemplo
+#######################################################################################################
+def test_data(DB):
+    DB_testing_2_3 = DB.copy()
+
+    cm = ['100', '101', '155']
+    pr = ['11', '22', '33']
+    spr = ['0101A', '0202A', '0303A']
+
+    DB_t_2_3 = pd.DataFrame()
+    for i in xrange(0, 3):
+        DB_testing_2_3['casematter'] = cm[i]
+        DB_testing_2_3['processtype'] = pr[i]
+        DB_testing_2_3['subprocesstype'] = spr[i]
+        DB_t_2_3 = pd.concat([DB_t_2_3, DB_testing_2_3], axis=0)
+    return DB_t_2_3
+
+
+DB = test_data(DB)
+#######################################################################################################
+# Calculos a nivel: jurisdiction + casematter + processtype + classtype ( 2 nivel)
+# Prepreocesing
+
+DB2 = DB[DB.casematter.notnull() & DB.processtype.notnull() & DB.classtype.notnull()]
+DB2 = DB[filter(lambda x: x not in ['subprocesstype'], DB.columns)]
+DB2['db2_id'] = DB2.jurisdiction.astype(str) + '/_/' + DB2.casematter.astype(str) + '/_/' + DB2.processtype.astype(
+    str) + '/_/' + DB2.classtype.astype(str) + '/_/' + DB2.sessionid.astype(str)
+DB2 = DB2[filter(
+    lambda x: x not in ['sessionid', 'classtype', 'jurisdiction', 'casematter', 'processtype', 'type', 'subtype'],
+    DB2.columns)]
+
+colNames = ['ids', 'time_elapsed', 'uniques', 'effort']
+get_time = lambda x: x[x.argmax()] - x[x.argmin()]
+deconcat = lambda x, elem: '/_/'.join(x.split('/_/')[0:elem])
+count_uniques = lambda x: x.unique().shape[0]
+get_uniques = lambda x: float(x.unique())
+
+dfs = []
+for ids in set(DB2.db2_id):
+    dfs.append([deconcat(ids, 4),
+                np.float32(get_time(DB2[(DB2['db2_id'] == ids)]['accessdate'].values).astype('timedelta64[m]')),
+                count_uniques(DB2[(DB2['db2_id'] == ids)].label),
+                get_eff(DB2[(DB2['db2_id'] == ids)])])
+
+DB2_result = pd.DataFrame(dfs, columns=colNames)
+
+DB2_result = DB2_result[DB2_result.time_elapsed != 0]
+
+# Calculos a nivel: jurisdiction + casematter + processtype + subprocesstype + classtype ( 3 nivel)
+# Prepreocesing
+# DB3 = DB[DB.casematter.notnull() & DB.processtype.notnull() & DB.subprocesstype.notnull() & DB3.classtype.notnull()] 
