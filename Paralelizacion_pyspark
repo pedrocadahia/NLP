@@ -1,0 +1,51 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+## Se importan librerías
+import sys # para recibir argumentos de la llamada shell
+from pyspark import SparkConf, SparkContext # para abrir los sc
+import functools # necesario si se quiere hacer una llamada con argumentos en una funcion a paralelizar
+
+"
+Ejemplo concreto:
+Adiquirimos todos los valores de la lista menos la posicion 0, esto es porque en el proyecto de justicia, la misma llamada
+contenía repetido el nombre del archivo y esto hacía que el sys.argv devolviese en la posicion cero un string "script.py"
+"
+args = sys.argv[1::]  
+
+# aplicamos una configuracion que el ingeniero de datos debe facilitar
+conf = (SparkConf()
+        .setAppName("ejemplo")
+        .set("spark.executor.memory", "1g")
+        .set("spark.yarn.appMasterEnv.PYSPARK_PYTHON", "/usr/bin/python")
+        .set("spark.yarn.appMasterEnv.PYSPARK_DRIVER_PYTHON", "/usr/bin/python"))
+
+# Crear el SparkContext con la configuración anterior
+sc = SparkContext(conf=conf)
+
+
+# Objetivo: Paralelizar una funcion a nivel de archivo no de algoritmo
+" de esta manera se mandará a cada nodo la funcion f() pero dentro de cada nodo no se hará distribuidos los calculos internos"
+def f(x, arg1):
+    # funcion que toma dos argumentos y hace print de la suma de un argumento con cada elemento
+    print(x+arg1)
+
+# se paraleliza dentro de parallelize se espera que vaya una lista de elementos a la que aplicar el foreach(distribuido)
+# de forma standard sería: sc.parallelize([1,2,3,4,5]).foreach(f) . pero como f tiene mas de 1 argumentos...
+
+sc.parallelize(args[1:-1]).foreach(functools.partial(f, arg1=args[::-1][0])) 
+
+"
+con esta llamada se pretende que si se hace una llamada tipo:
+
+spark script.py 1 2 3 4 5
+
+args = sys.argv[1::] # args será una lista [2,3,4,5] , sacando "script.py" de la lista original
+se aplica f a cada elemento, de forma que la entrada args[1:-1] que sería [2,3,4] se le suma a cada elemento el 5 (de aqui el [::-1])
+
+Esto es un simil a:
+args será una lista ["doc1","doc2",..]
+y con silcings tipo [::-1] , se obtengan los argumentos adicionales
+
+de esta manera se aplica el ner y AKD en todos los nodos
+"
