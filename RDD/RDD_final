@@ -16,10 +16,11 @@ if len(sys.argv) == 7:
 
 else:
     raise Exception(
-        "Fallo de llamada de script con los argumentos: " + sys.argv[1] + " "+ sys.argv[2]
+        "Fallo de llamada de script con los argumentos: " + sys.argv[1] + " " + sys.argv[2]
         + " con el password e IP, por favor revise otra vez los parametros")
 
-if sys.argv[6]:
+if sys.argv[6].upper() == "T":
+    print('Ejecutando modo spark..')
     PATH = "hdfs:///user/ijdocs/"
     import subprocess
     from pyspark import SparkConf, SparkContext
@@ -304,7 +305,7 @@ def do_rdd(dbname, dbuser, dbpass, host, port):
                 df = Group(DB1_result[DB1_result.ids.str.startswith(juri + '/_/')]).mean_level_1()
                 for index, row in df.iterrows():
                     res = [hash_list(row[df.columns].tolist())] + row[df.columns].tolist()
-                    values = [res[0], res[2], None, res[1], None, None, None, res[3]]
+                    values = [res[0], res[2], None, res[1], None, None, None, int(res[3])]
                     db_conn.cursor.execute(req, tuple(values))
             except ValueError:
                 pass
@@ -336,7 +337,7 @@ def do_rdd(dbname, dbuser, dbpass, host, port):
                 df = Group(DB2_result[DB2_result.ids.str.startswith(juri + '/_/')]).mean_level_2()
                 for index, row in df.iterrows():
                     res = [hash_list(row[df.columns].tolist())] + row[df.columns].tolist()
-                    values = [res[0], res[4], None, res[1], res[2], res[3], None, res[5]]
+                    values = [res[0], res[4], None, res[1], res[2], res[3], None, int(res[5])]
                     db_conn.cursor.execute(req, tuple(values))
             except ValueError:
                 pass
@@ -370,7 +371,7 @@ def do_rdd(dbname, dbuser, dbpass, host, port):
                 df = Group(DB_O_1_result[DB_O_1_result.ids.str.startswith(owner + '/_/')]).mean_level_owner1()
                 for index, row in df.iterrows():
                     res = [hash_list(row.tolist())] + row.tolist()
-                    values = [res[0], res[3], res[1], res[2], None, None, None, res[4]]
+                    values = [res[0], res[3], res[1], res[2], None, None, None, int(res[4])]
                     # id code owner jurisdiction classmatter processtype stage ranking
                     db_conn.cursor.execute(req, tuple(values))
             except:
@@ -406,7 +407,7 @@ def do_rdd(dbname, dbuser, dbpass, host, port):
                 df = Group(DB_O_2_result[DB_O_2_result.ids.str.startswith(owner + '/_/')]).mean_level_owner2()
                 for index, row in df.iterrows():
                     res = [hash_list(row[df.columns].tolist())] + row[df.columns].tolist()
-                    values = [res[0], res[5], res[1], res[2], res[3], res[3], None, res[6]]
+                    values = [res[0], res[5], res[1], res[2], res[3], res[3], None, int(res[6])]
                     # id code owner jurisdiction classmatter processtype stage ranking
                     db_conn.cursor.execute(req, tuple(values))
             except ValueError:
@@ -420,5 +421,5 @@ if __name__ == "__main__":
     dbpass = sys.argv[3]
     host = sys.argv[4]
     port = sys.argv[5]
-    print('Procesando script '+script+' ...')
+    print('Procesando script ' + script + ' ...')
     do_rdd(dbname, dbuser, dbpass, host, port)
