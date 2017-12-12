@@ -1,5 +1,0 @@
-import nltk
-#Ahora metemos un comentario
-#Esto es un repaso de Python
-#Temas de texto
-lst = [1,2,3,4]
