@@ -1,0 +1,214 @@
+import numpy as np
+import pandas as pd
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import itertools
+import xml.etree.ElementTree as ET
+xml_file='C:/Users/pedro.cadahia/PycharmProjects/IJ/data/train.xml'
+
+def readXML(xmlFIle):
+    tree = ET.parse(xmlFIle)
+    root = tree.getroot()
+
+    tweets = []
+
+    for tweet in root.iter('tweet'):
+        content = tweet.find('content').text
+
+        sentiments = tweet.find('sentiments')
+        polarity = sentiments.find('polarity').find('value').text
+
+#         polarity = polarityTagging3(polarity)
+        polarity = polaritybiTagging(polarity)
+
+        # Other info:
+        tweet_id = int(tweet.find('tweetid').text)
+        user = tweet.find('user').text
+        date = tweet.find('date').text
+        lang = tweet.find('lang').text
+
+        if content != None:
+            tweets.append([tweet_id, user, date, lang, content, polarity])
+
+    return pd.DataFrame(tweets, columns=['id','user','date','lang','content','polarity'])
+
+def polaritybiTagging(polarity):
+    if (polarity.__eq__('NONE')):
+        polarity = 0
+    elif (polarity.__eq__('N+')):
+        polarity = 0
+    elif (polarity.__eq__('N')):
+        polarity = 0
+    elif (polarity.__eq__('NEU')):
+        polarity = 1
+    elif (polarity.__eq__('P')):
+        polarity = 1
+    elif (polarity.__eq__('P+')):
+        polarity = 1
+
+    return polarity
+
+
+def polarityTagging3(polarity):
+    if (polarity.__eq__('NONE')):
+        polarity = 0
+    elif (polarity.__eq__('N+')):
+        polarity = -1
+    elif (polarity.__eq__('N')):
+        polarity = -1
+    elif (polarity.__eq__('NEU')):
+        polarity = 0
+    elif (polarity.__eq__('P')):
+        polarity = 1
+    elif (polarity.__eq__('P+')):
+        polarity = 1
+
+    return polarity
+    
+    tweets = readXML(xml_file)
+    
+import nltk
+from nltk.corpus import stopwords
+from nltk import word_tokenize
+from nltk.data import load
+from nltk.stem import SnowballStemmer
+from string import punctuation
+from sklearn.feature_extraction.text import CountVectorizer
+
+
+spanish_stopwords = stopwords.words('spanish')
+
+stemmer = SnowballStemmer('spanish')
+
+non_words = list(punctuation)
+non_words.extend(['¿', '¡'])
+non_words.extend(map(str,range(10)))
+
+stemmer = SnowballStemmer('spanish')
+def stem_tokens(tokens, stemmer):
+    stemmed = []
+    for item in tokens:
+        stemmed.append(stemmer.stem(item))
+    return stemmed
+
+def tokenize(text):
+    text = ''.join([c for c in text if c not in non_words])
+    tokens =  word_tokenize(text)
+
+    # stem
+    try:
+        stems = stem_tokens(tokens, stemmer)
+    except Exception as e:
+        print(e)
+        print(text)
+        stems = ['']
+    return stems
+    
+vectorizer = CountVectorizer(
+                analyzer = 'word',
+                tokenizer = tokenize,
+                lowercase = True,
+                stop_words = spanish_stopwords)
+from sklearn.svm import LinearSVC  
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import GridSearchCV
+
+vectorizer = CountVectorizer(  
+                analyzer = 'word',
+                tokenizer = tokenize,
+                lowercase = True,
+                stop_words = spanish_stopwords)
+
+pipeline = Pipeline([  
+    ('vect', vectorizer),
+    ('cls', LinearSVC()),
+])
+
+
+# here we define the parameter space to iterate through
+parameters = {  
+    'vect__max_df': (0.5, 1.9),
+    'vect__min_df': (10, 20,50),
+    'vect__max_features': (500, 1000),
+    'vect__ngram_range': ((1, 1), (1, 2)),  # unigrams or bigrams
+    'cls__C': (0.2, 0.5, 0.7),
+    'cls__loss': ('hinge', 'squared_hinge'),
+    'cls__max_iter': (500, 1000)
+}
+
+
+grid_search = GridSearchCV(pipeline, parameters, scoring='roc_auc')  
+grid_search.fit(tweets.content, tweets.polarity) 
+
+print("Best parameters set found on development set:")
+print()
+print(grid_search.best_params_)
+print()
+print("Grid scores on development set:")
+print()
+means = grid_search.cv_results_['mean_test_score']
+stds = grid_search.cv_results_['std_test_score']
+for mean, std, params in zip(means, stds, grid_search.cv_results_['params']):
+    print("%0.3f (+/-%0.03f) for %r"
+          % (mean, std * 2, params))
+print()
+
+
+#ajustamos el modelo at corpus de TASS
+XX.fit(tweets.content, tweets.polarity)
+
+
+
+xml_test='C:/Users/pedro.cadahia/PycharmProjects/IJ/data/test.xml'
+tweet_test = readXML(xml_test)
+
+
+#Ahora validamos en el test set
+tweet_test['predicted_polarity'] = pipeline.predict(tweet_test.content)
+
+from sklearn.metrics import accuracy_score
+
+
+accuracy_score(tweet_test['polarity'], tweet_test['predicted_polarity'])
+
+
+
+# Guardando modelo
+try:
+    import _pickle as cPickle
+    # save the classifier
+    with open('my_dumped_classifier.pkl', 'wb') as fid:
+        cPickle.dump(gnb, fid)    
+
+    # load it again
+    with open('my_dumped_classifier.pkl', 'rb') as fid:
+        gnb_loaded = cPickle.load(fid)
+        
+except:
+    import pickle as cPickle
+    # save the classifier
+    with open('my_dumped_classifier.pkl', 'wb') as fid:
+        cPickle.dump(gnb, fid)    
+
+    # load it again
+    with open('my_dumped_classifier.pkl', 'rb') as fid:
+        gnb_loaded = cPickle.load(fid)
+        
+        
+# Probando el modelo en datos reales
+n_rep = pd.read_csv('data/notes_repaired.csv', encoding='latin1')
+sugg = pd.read_csv('data/note_suggestions.csv',header=None, encoding='latin1')
+n_rep_filt = n_rep[n_rep.content.map(lambda x: type(x)==str)]
+
+
+n_rep_filt['polarity'] = pipeline.predict(n_rep_filt.content)
+
+# Revisar si almenos acierta en este diccionario:
+default_weigth={'Llamar':1, 'A citar':1, 'A entrevistar':1, 'Citado':1, 'Convocado':1, 'Contactado':1,'Dejado mensaje':1,
+                'Ya entrevistado':1,'Cv solicitado':1,'Richiesto CV':1,'Contattato':1,'Da contattare':1,'Ricontattare':1,
+                'Mensaje BuzÃ³n':1
+                ,'No cumple perfil':-1,'Poca experiencia':-1,'Sin experiencia':-1
+                ,'Expectativas salariales altas':-1,'No esperienza':-1,'No llamar':-1}
+
+set(sugg[1])-default_weigth.keys() # deberia ser 0
