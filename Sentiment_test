@@ -156,7 +156,7 @@ print()
 
 
 #ajustamos el modelo at corpus de TASS
-XX.fit(tweets.content, tweets.polarity)
+pipeline.fit(tweets.content, tweets.polarity)
 
 
 
