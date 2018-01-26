@@ -1,4 +1,25 @@
 # Funcion de Instalacion y carga de paquetes
+
+def opt_page_num(doc, criterion):
+    # conexion a elasticsearch
+    from elasticsearch import Elasticsearch
+    import math
+    try:
+        es = Elasticsearch(["172.22.248.206:9229"])
+    except 'connection error':
+        print ("CONNECTION ERROR")
+    try:
+        # revisar indice para consulta. index="aeacus_kdd". uri:aeacus:fs#9e33cbdbd42b4ec98b1e8d2080d64ed4
+        r = es.search(index="aeacus_kdd", doc_type="document",
+                      body={"size": 1000, "query": {"match": {criterion: doc}}},
+                      sort="page")
+        c = 0
+        for _ in r['hits']['hits']:
+            c += 1
+        return round(2.7 * math.log1p(c) + 0.6)
+    except 'Warning':
+        print 'la consulta no se ha realizado de manera adecuada
+
 def install_packages(package):
     # Es un install_packages y require en python desde consola
     import importlib
