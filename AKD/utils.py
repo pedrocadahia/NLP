@@ -224,6 +224,5 @@ def lenguaje(texto):
     nfkd_form = unicodedata.normalize('NFKD', texto)
     only_ascii = nfkd_form.encode('ASCII', 'ignore')
     # Reconocimiento
-    # Depuracion de simbologia by Didac
     Siglas = detect(only_ascii) # Cuidado! hay que tener el diccionario cargado!
     return Diccionario[Siglas]
