@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Conexion y Consulta elastisearch
-# spark-submit --master yarn-cluster --deploy-mode cluster --py-files cod.py cod.py 172.22.248.206:9229 aeacus_kdd 172.22.248.206:9229 pruebas 03_002-008_14.PDF name
 import sys
 
 from elasticsearch import Elasticsearch
